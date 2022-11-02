@@ -42,11 +42,6 @@ export const loginModule = {
     loginModalToggle (state: any) {
       state.mdl_LoginShown = !state.mdl_LoginShown;
     },
-    setError         (state: any, error: any) { //@ts-ignore
-      console.log('error', error) //@ts-ignore
-      state.errMsg = messages[error.error.message]
-      console.log(state.errMsg)
-    },
     setUser          (state: any, payload: UserProfile_Type) { state.user = payload; },
     setUserErr       (state: any, payload: any) { state.onUserError = payload }
 
@@ -56,14 +51,15 @@ export const loginModule = {
 
     async createNewUser({state, commit, dispatch}: any, userData: UserProfile_Type) {
       commit('setAuthLoading', true);
+
+      let { email, password } = userData;
+
       return createUser(userData)
           .then((res: any) => {
-            console.log('res', res);
             if (res.authSuccess) {
-              return dispatch('getUser', res.userId)
+              return dispatch('login', {userName: email, password})
             } else {
-              commit('setError', res);
-              return state.errMsg || 'Unknown error'
+              return res
             }
           })
           .catch(e => e)
@@ -82,17 +78,13 @@ export const loginModule = {
     },
 
     async getUser({state, commit, dispatch}: any, userId: string) {
-      console.log('getUser!!!', userId)
       commit('setUserErr', null);
       return getCurrentUser(userId)
           .then((res) => {
-            console.log(res.exists())
-            console.log(res.val())
             if (res.exists()) {
               commit('setIsAuth', true);
               return commit('setUser', res.val())
             } else {
-              console.log("No data available");
               return commit('setUser', {})
             }
           })
@@ -106,21 +98,17 @@ export const loginModule = {
       commit('setAuthLoading', true);
 
       return loginUser(credentials.userName, credentials.password)
-
           .then((res: any) => {
-            console.log('ressss', res)
-            if (res.localId) {
-              const auth  = getAuth();
-              console.log(auth)
-              // signInWithEmailAndPassword(auth, credentials.userName, credentials.password)
-              dispatch('getUser', res.localId)
-              return { authSuccess: true, userId: res.localId }
+            let { uid } = res.user;
+
+            if (uid) {
+              return { authSuccess: true, userId: uid }
             }
-            else { console.log('err1', res)
+            else {
               return {...res, authSuccess: false,}
             }
           })
-          .catch(e =>{ console.log('err2', e)
+          .catch(e =>{
             return {...e, authSuccess: false,}
           })
           .finally(()=> {
@@ -134,7 +122,6 @@ export const loginModule = {
 
       const auth = await getAuth();
       const res  = await signOut(auth)
-      console.log('logout', res)
 
       commit('setIsAuth', false);
       commit('setUser', {});

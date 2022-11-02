@@ -17,16 +17,16 @@
           <div class="flexed centred columned aligned col-secondary">
 
             <div class="form-item">
-              <label class="label" for="name">Login <em>*</em></label>
-              <input id="name" name="name" autocomplete="off" type="text" v-model="form.name"
+              <label class="label" for="email">Login <em>*</em></label>
+              <input id="email" name="email" autocomplete="off" type="text" v-model="form.email"
                      placeholder="Ray Bradbury"
                      class="input col-sub-secondary"
-                     :class="{ 'error-field': $v.form.name.$dirty && !$v.form.name.required }"
+                     :class="{ 'error-field': $v.form.email.$dirty && !$v.form.email.required }"
               >
             </div>
 
-            <div class="input-errors" v-if="$v.form.name.$dirty">
-              <span v-if="!$v.form.name.required" class="error-msg">Please input your name </span>
+            <div class="input-errors" v-if="$v.form.email.$dirty">
+              <span v-if="!$v.form.email.required" class="error-msg">Please input your name </span>
             </div>
 
 
@@ -72,7 +72,7 @@
 <script lang="ts">
   import {defineComponent} from '@vue/composition-api';
   import {normalizeFormValues} from "@/utils/helpers";
-  import {required} from "vuelidate/lib/validators";
+  import {required, email} from "vuelidate/lib/validators";
   import {mapState, mapActions, mapMutations} from 'vuex'; //@ts-ignore
   import authLoadingPic from '@/dal/images/loaders/authLoader.gif';
   import messages from "@/utils/messages";
@@ -82,7 +82,7 @@
     data() {
       return {
         form: {
-          name:     '',
+          email:     '',
           password: '',
         },
         validateMessages: {
@@ -98,7 +98,7 @@
     validations() {
       return {
         form: {
-          name: {required},
+          email: {required, email},
           pass: {required},
         }
       }
@@ -134,18 +134,17 @@
         if (this.$v.$invalid) {
           this.$v.$touch();
         } else {
-          const values = JSON.parse(JSON.stringify({...this.form}))
-          const normValues = normalizeFormValues(values)
+          const values = JSON.parse(JSON.stringify({...this.form}));
+          const normValues = normalizeFormValues(values);
 
-          let {name, pass} = normValues;
-          let res = await this.login({userName: name, password: pass})
-          console.log('res', res)
+          let {email, pass} = normValues;
+          let res = await this.login({userName: email, password: pass})
+          console.log('res', res);
 
           if (res.authSuccess) {
             this.$emit('closeModal')
-          } else {
-            //@ts-ignore
-            this.validateMessages.message = messages[res.error.message] || 'Unknown error occured..'
+          } else {            //@ts-ignore
+            this.validateMessages.message = messages[res.code] || 'Unknown error occured..'
           }
 
         }

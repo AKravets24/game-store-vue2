@@ -40,7 +40,6 @@ export async function createUser(userData: UserProfile_Type) {
           if (res.localId) {
             return set(ref(getDatabase(), 'users/' + res.localId), userData)
                 .then(() => {
-                  console.log('resID', res);
                   return {authSuccess: true, userId: res.localId}
                 })
                 .catch(e => {
@@ -78,7 +77,7 @@ export async function createUser(userData: UserProfile_Type) {
 export async function loginUser(email: string, password: string) {
   const auth = getAuth();
   const {apiKey} = auth.config;
-  return await signInWithEmailAndPassword(auth, email, password)
+  return await signInWithEmailAndPassword(auth, email, password);
   // return await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
   //     {
   //       method: 'POST',
