@@ -15,26 +15,23 @@
 
             <div class="flexed centred columned aligned col-secondary">
 
+              <div v-if="errMsg">
+                <span class="error-msg">{{errMsg}}</span>
+              </div>
+
               <div class="form-item">
                 <label class="label" for="login">Name <em>*</em></label>
                 <input id="login" name="login" autocomplete="off" type="text" v-model="form.login"
                        placeholder="Ray Bradbury"
                        class="input col-sub-secondary font-S"
-                       :class="{ 'error-field': ($v.form.login.$dirty && (!$v.form.login.required || !$v.form.login.minLength)
-                       || validateMessages.existUserName ) }"
+                       :class="{ 'error-field': ($v.form.login.$dirty && (!$v.form.login.required || !$v.form.login.minLength))}"
                 >
               </div>
 
               <div class="input-errors" v-if="$v.form.login.$dirty">
                 <span v-if="!$v.form.login.required" class="error-msg">Please input your name </span>
                 <span v-else-if="!$v.form.login.minLength" class="error-msg">Please, input longer name  </span>
-                <span v-else-if="validateMessages.existUserName" class="error-msg">This name already exist  </span>
               </div>
-
-              <div class="input-errors" v-if="validateMessages.existUserName">
-                <span v-if="validateMessages.existUserName" class="error-msg">This name already exist  </span>
-              </div>
-
 
               <div class="form-item">
 
@@ -43,15 +40,13 @@
                        placeholder="+7(800) 555-35-35"
                        v-imask="phoneNumberMask"
                        class="input col-sub-secondary font-S"
-                       :class="{ 'error-field': ($v.form.phone.$dirty && (!$v.form.phone.required || !$v.form.phone.minLength)
-                        || validateMessages.existPhone ) }"
+                       :class="{ 'error-field': ($v.form.phone.$dirty && (!$v.form.phone.required || !$v.form.phone.minLength))}"
                 >
               </div>
 
-              <div class="input-errors" v-if="$v.form.phone.$dirty || validateMessages.existPhone">
+              <div class="input-errors" v-if="$v.form.phone.$dirty">
                 <span v-if="!$v.form.phone.required" class="error-msg">          Please input your phone number </span>
                 <span v-else-if="!$v.form.phone.minLength" class="error-msg">    Please input correct phone number</span>
-                <span v-else-if="validateMessages.existPhone" class="error-msg"> This phone already exist</span>
               </div>
 
               <div class="form-item">
@@ -60,15 +55,13 @@
                 <input id="email" name="email" autocomplete="off" v-model="form.email"
                        placeholder="test@test.ururu"
                        class="input col-sub-secondary font-S"
-                       :class="{ 'error-field': ($v.form.email.$dirty && (!$v.form.email.required || !$v.form.email.email)
-                       ||  validateMessages.existEmail) }"
+                       :class="{ 'error-field': ($v.form.email.$dirty && (!$v.form.email.required || !$v.form.email.email)) }"
                 >
               </div>
 
-              <div class="input-errors" v-if="$v.form.email.$dirty || validateMessages.existEmail">
+              <div class="input-errors" v-if="$v.form.email.$dirty">
                 <span v-if="!$v.form.email.required" class="error-msg">Please input your email </span>
                 <span v-else-if="!$v.form.email.email" class="error-msg">Please input correct email </span>
-                <span v-else-if="validateMessages.existEmail" class="error-msg">This email already exist </span>
               </div>
 
               <div class="form-item">
@@ -99,6 +92,7 @@
               <div class="input-errors" v-if="!$v.form.repeatPass.sameAs">
                 <span v-if="!$v.form.repeatPass.sameAs" class="error-msg">Passwords not equal</span>
               </div>
+
 
 
             </div>
@@ -216,7 +210,14 @@
 
           </fieldset>
 
-         <input class="table-btn font-S" type="submit" value="Register now!">
+          <my-button type="submit"
+                  :disabled="authIsLoading || selected ==='registration'"
+                     class="table-btn font"  @myClick="submitter">
+          <span class="flexed justifyed aligned">
+            <img v-if="authIsLoading" class="loader-icon" :src="loaderPic" alt="err"> Register now
+          </span>
+          </my-button>
+
 
         </form>
 
@@ -232,11 +233,13 @@
 <script lang="ts">
 
   import {defineComponent} from '@vue/composition-api';
-  import {required, minLength, email, sameAs, numeric, minValue, maxValue,} from 'vuelidate/lib/validators';
+  import {required, minLength, email, sameAs, numeric, minValue, maxValue,} from 'vuelidate/lib/validators'; //@ts-ignore
+  import authLoadingPic from '@/dal/images/loaders/authLoader.gif';
   //@ts-ignore
   import {IMaskDirective} from 'vue-imask'
   import {normalizeFormValues} from "@/utils/helpers";
   import {mapState, mapActions, mapMutations} from 'vuex'
+  import messages from "@/utils/messages";
 
   export default defineComponent({
     name: "Registration",
@@ -247,18 +250,17 @@
           login:         '' as string,
           phone:         '' as string,
           email:         '' as string,
-          password:          '' as string,
+          password:      '' as string,
           repeatPass:    '' as string,
           age:           '' as string,
           gender:        'male' as string,
           games:         [] as string[],
           receivingNews: '' as string,
         },
-        validateMessages: {
-          existEmail:    false as boolean,
-          existPhone:    false as boolean,
-          existUserName: false as boolean,
-        },
+
+        loaderPic: authLoadingPic,
+
+        errMsg: '',
 
         phoneNumberMask: {
           mask: '+{7}(000) 000-00-00',
@@ -271,19 +273,21 @@
     computed: {
       ...mapState({
         isAuth: ({login}: any) => login.isAuth,
+        authIsLoading: ({login}: any) => login.authIsLoading,
+
       })
     },
 
     validations() {
       return {
         form: {
-          login: {required, minLength: minLength(3)},
-          phone: {required, minLength: minLength(17)},
-          email: {required, email},
-          password: {required, minLength: minLength(2)},
+          login:      {required, minLength: minLength(1)},
+          phone:      {required, minLength: minLength(17)},
+          email:      {required, email},
+          password:   {required, minLength: minLength(6)},
           repeatPass: {required, sameAs: sameAs('password')},
-          age: {required, numeric, minValue: minValue(15), maxValue: maxValue(100)},
-        }
+          age:        {required, numeric, minValue: minValue(15), maxValue: maxValue(100)},
+        },
       }
     },
 
@@ -298,40 +302,22 @@
       },
 
     async submitter(): Promise<any> {
-      console.log(this.$v)
 
-      this.validateMessages.existEmail    = false;
-      this.validateMessages.existPhone    = false;
-      this.validateMessages.existUserName = false;
-
+      this.errMsg = '';
 
       if (this.$v.$invalid) {
           this.$v.$touch();
         } else {
-          const values = JSON.parse(JSON.stringify({...this.form}))
+          const values = JSON.parse(JSON.stringify({...this.form}));
           delete values.repeatPass;
           const normValues = normalizeFormValues(values);
-
-        console.log(normValues)
         let res = await this.createNewUser(normValues)
-        console.log('res_reg', res)
-          // let res = await this.createNewUser(normValues);
-          //
-          // console.log('submitter', res)
-          //
-          // if(res.authSuccess) {
-          //   let prevPage = (this.$route.query.from as string) || '/' ;
-          //   this.$router.push(prevPage)
-          // } else {
-          //   for(let key in this.validateMessages) {
-          //     for (let key2 in res) {
-          //       if (key === key2) {
-          //         (this.validateMessages as any )[key] = res[key2]
-          //       }
-          //     }
-          //   }
-          // }
-          // console.log('validate', this.validateMessages)
+          if(res.authSuccess) {
+            let prevPage = (this.$route.query.from as string) || '/' ;
+            this.$router.push(prevPage)
+          } else {//@ts-ignore
+            this.errMsg = messages[res.error.message] || 'Unknown error occured..'
+          }
         }
       },
 
@@ -346,9 +332,6 @@
     },
 
     mounted(): void {
-      console.log(this.$route)
-      console.log(this.$router)
-
       if (this.isAuth) {
         let prevPage = (this.$route.query.from as string) || '/' ;
         this.$router.push(prevPage)
@@ -461,5 +444,10 @@
     padding: 0 !important;
   }
 
+
+  .loader-icon {
+    height: 20px;
+    width:  20px;
+  }
 
 </style>
